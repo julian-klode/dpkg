@@ -1,0 +1,25 @@
+language: c
+compiler:
+  - gcc
+sudo: required
+dist: trusty
+env:
+  global:
+    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+    #   via the "travis encrypt" command using the project repo's public key
+    - secure: "r6JisGshiAE90hYmSSqSoLVC8Pa1s0Q+GgArvwnqikvgnU18lWjHR8mC0UlDb6VeYshgWDeGpVk4Wg9f/whMMTQIBIqTrg5bHTfUtrFjVwp5OUqCDTtO6EoDmqopJyRDMFWELVhgNBaE74A54vqK61a03gsR1vCu50sUfq+MjnY="
+addons:
+  coverity_scan:
+    project:
+      name: guillemj/dpkg
+      description: Debian package manager
+    notification_email: guillem@debian.org
+    build_command_prepend: autoreconf -f -i && ./configure
+    build_command: make
+    branch_pattern: coverity_scan
+before_install:
+  - sudo apt-get update -qq
+install:
+  - sudo apt-get install -y pkg-config libtool flex autopoint gettext zlib1g-dev libbz2-dev liblzma-dev libselinux1-dev libncursesw5-dev perl libio-string-perl
+script:
+  - if [ ${COVERITY_SCAN_BRANCH} != 1 ]; then autoreconf -f -i && ./configure && make check ; fi
