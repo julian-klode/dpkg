@@ -22,7 +22,7 @@ m4_ifdef([AM_GNU_GETTEXT_REQUIRE_VERSION],
 # In the future when the gettext version is bumped, we have to set the above
 # macro unconditionally to the minimal version, and set the below to 0.19.6,
 # the first version introducing the AM_GNU_GETTEXT_REQUIRE_VERSION macro.
-AM_GNU_GETTEXT_VERSION([0.19])
+AM_GNU_GETTEXT_VERSION([0.18])
 AM_GNU_GETTEXT([external])
 DPKG_DIST_CHECK([test "$GMSGFMT" = ":" && test "$USE_NLS" = "yes"],
                 [gettext required when NLS support enabled])
