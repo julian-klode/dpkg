@@ -75,6 +75,7 @@ DPKG_BEGIN_DECLS
 
 #define STATUSFILE        "status"
 #define AVAILFILE         "available"
+#define FRONTENDLOCKFILE  "frontend-lock"
 #define LOCKFILE          "lock"
 #define DIVERSIONSFILE    "diversions"
 #define STATOVERRIDEFILE  "statoverride"
