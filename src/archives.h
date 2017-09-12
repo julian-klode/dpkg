@@ -33,6 +33,8 @@ struct tarcontext {
   struct filenamenode_queue *newfiles_queue;
   /** Are all “Multi-arch: same” instances about to be in sync? */
   bool pkgset_getting_in_sync;
+  /** If we are extracting a delta */
+  bool delta;
 };
 
 struct pkg_deconf_list {

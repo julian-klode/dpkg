@@ -11,6 +11,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/lib
 LDADD = \
 	../lib/dpkg/libdpkg.la \
+	../lib/ddelta/libddelta.la \
 	$(LIBINTL)
 
 

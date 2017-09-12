@@ -42,6 +42,7 @@
 #define obstack_chunk_alloc m_malloc
 #define obstack_chunk_free free
 
+#include <ddelta/ddelta.h>
 #include <dpkg/i18n.h>
 #include <dpkg/dpkg.h>
 #include <dpkg/dpkg-db.h>
@@ -349,11 +350,14 @@ tarobject_extract(struct tarcontext *tc, struct tar_entry *te,
   static struct varbuf hardlinkfn;
   static int fd;
 
+  struct ddelta_header delta_header;
   struct dpkg_error err;
   struct filenamenode *linknode;
   char fnamebuf[256];
   char fnamenewbuf[256];
   char *newhash;
+  int sourcefd;
+  off_t sourcesize;
 
   switch (te->type) {
   case TAR_FILETYPE_FILE:
@@ -367,13 +371,47 @@ tarobject_extract(struct tarcontext *tc, struct tar_entry *te,
     debug(dbg_eachfiledetail, "tarobject file open size=%jd",
           (intmax_t)te->size);
 
-    /* We try to tell the filesystem how much disk space we are going to
-     * need to let it reduce fragmentation and possibly improve performance,
-     * as we do know the size beforehand. */
-    fd_allocate_size(fd, 0, te->size);
+    if (tc->delta) {
+      pid_t child = fork();
+      int childinput[2];
+      int childoutput[2];
+
+      if (pipe(childinput) < 0)
+        ohshite("Cannot create pipe to ddelta");
+      if (pipe(childoutput) < 0)
+          ohshite("Cannot create pipe from ddelta");
+
+      if (child == 0) {
+        if (ddelta_header_read(&delta_header, stdin) < 0)
+          ohshit("Cannot read delta header");
+
+        fd_allocate_size(fd, 0, delta_header.new_file_size);
+
+        if (ddelta_apply(&delta_header, fdopen(childinput[0], "rb"), fopen(te->name, "rb"), fdopen(childoutput[1], "wb")) < 0)
+          ohshit("Error applying delta");
+
+        _exit(0);
+      }
+
+      if (fork() == 0) {
+        if (fd_fd_copy(tc->backendpipe, childinput[1], te->size, &err) < 0)
+          ohshite("Cannot copy patch to ddelta");
+        _exit(0);
+      }
+      sourcefd = childoutput[0];
+      sourcesize = -1;
+    } else {
+      sourcefd = tc->backendpipe;
+      sourcesize = te->size;
+
+      /* We try to tell the filesystem how much disk space we are going to
+       * need to let it reduce fragmentation and possibly improve performance,
+       * as we do know the size beforehand. */
+      fd_allocate_size(fd, 0, te->size);
+    }
 
     newhash = nfmalloc(MD5HASHLEN + 1);
-    if (fd_fd_copy_and_md5(tc->backendpipe, fd, newhash, te->size, &err) < 0)
+    if (fd_fd_copy_and_md5(sourcefd, fd, newhash, sourcesize, &err) < 0)
       ohshit(_("cannot copy extracted data for '%.255s' to '%.255s': %s"),
              path_quote_filename(fnamebuf, te->name, 256),
              path_quote_filename(fnamenewbuf, fnamenewvb.buf, 256), err.str);

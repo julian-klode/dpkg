@@ -1099,6 +1099,8 @@ void process_archive(const char *filename) {
   if (!f_nodebsig)
     deb_verify(filename);
 
+  tc.delta = strstr(filename, ".deltadeb");
+
   /* Get the control information directory. */
   cidir = get_control_dir(cidir);
   cidirrest = cidir + strlen(cidir);
