@@ -372,32 +372,54 @@ tarobject_extract(struct tarcontext *tc, struct tar_entry *te,
           (intmax_t)te->size);
 
     if (tc->delta) {
-      pid_t child = fork();
       int childinput[2];
       int childoutput[2];
+      pid_t child;
 
       if (pipe(childinput) < 0)
-        ohshite("Cannot create pipe to ddelta");
+              ohshite("Cannot create pipe to ddelta");
       if (pipe(childoutput) < 0)
           ohshite("Cannot create pipe from ddelta");
 
+      child = fork();
+
       if (child == 0) {
-        if (ddelta_header_read(&delta_header, stdin) < 0)
+        FILE *patch;
+        FILE *old;
+        FILE *new;
+
+        chdir("/");
+
+        old = fopen(te->name, "rb");
+        patch = fdopen(childinput[0], "rb");
+        new = fdopen(childoutput[1], "wb");
+        if (patch == NULL || old == NULL || new == NULL)
+          ohshite("Some error");
+        if (ddelta_header_read(&delta_header, patch) < 0)
           ohshit("Cannot read delta header");
 
         fd_allocate_size(fd, 0, delta_header.new_file_size);
 
-        if (ddelta_apply(&delta_header, fdopen(childinput[0], "rb"), fopen(te->name, "rb"), fdopen(childoutput[1], "wb")) < 0)
+        printf("Reading patch from %d\n", childinput[0]);
+
+        if (ddelta_apply(&delta_header, patch, old, new) < 0)
           ohshit("Error applying delta");
 
+        fclose(old);
+        fclose(patch);
+        fclose(new);
         _exit(0);
       }
 
       if (fork() == 0) {
         if (fd_fd_copy(tc->backendpipe, childinput[1], te->size, &err) < 0)
           ohshite("Cannot copy patch to ddelta");
+        close(childinput[1]);
         _exit(0);
       }
+      close(childoutput[1]);
+      close(childinput[0]);
+      close(childinput[1]);
       sourcefd = childoutput[0];
       sourcesize = -1;
     } else {
