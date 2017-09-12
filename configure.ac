@@ -78,6 +78,7 @@ DPKG_CODE_COVERAGE
 AC_SYS_LARGEFILE
 
 # Checks for libraries.
+PKG_CHECK_MODULES([DIVSUFSORT], [libdivsufsort])
 DPKG_LIB_MD
 DPKG_LIB_Z
 DPKG_LIB_BZ2
@@ -208,6 +209,7 @@ AC_CONFIG_FILES([
   dselect/po/Makefile.in
   lib/Makefile
   lib/compat/Makefile
+  lib/ddelta/Makefile
   lib/dpkg/Makefile
   lib/dpkg/libdpkg.pc
   lib/dpkg/t/Makefile

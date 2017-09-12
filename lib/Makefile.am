@@ -2,4 +2,5 @@
 
 SUBDIRS = \
 	compat \
+	ddelta \
 	dpkg
